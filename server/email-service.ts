@@ -12,7 +12,7 @@ export class EmailService {
 
   private getReadableErrorMessage(error: string): string {
     if (error.includes('Invalid credentials')) {
-      return 'Invalid email or password. For Gmail accounts, you must use an App Password - go to Google Account Settings > Security > 2-Step Verification > App Passwords to generate one.';
+      return 'Invalid email or password. For Gmail accounts:\n1. Enable 2-Step Verification in Google Account Settings > Security\n2. Then go to Security > App Passwords\n3. Generate and use an App Password instead of your regular password';
     }
     if (error.includes('ETIMEDOUT')) {
       return 'Connection timed out. Please check your host and port settings.';
