@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { emailService } from "./email-service";
 import { insertEmailConfigSchema, insertPdfMetadataSchema } from "@shared/schema";
+import { log } from "./vite";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Start email monitoring service
@@ -42,6 +43,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const id = parseInt(req.params.id);
     await storage.deleteEmailConfig(id);
     res.status(204).end();
+  });
+
+  // Manual check inbox route
+  app.post("/api/check-inbox", async (_req, res) => {
+    try {
+      const configs = await storage.getEmailConfigs();
+      for (const config of configs) {
+        if (config.active) {
+          await emailService.checkEmails(config).catch(err => {
+            log(`Error checking emails for ${config.email}: ${err.message}`, 'email-service');
+          });
+        }
+      }
+      res.json({ message: "Inbox check initiated" });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to check inbox" });
+    }
   });
 
   // PDF metadata routes
