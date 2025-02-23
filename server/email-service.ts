@@ -10,12 +10,87 @@ export class EmailService {
   private checkInterval: NodeJS.Timeout | null = null;
   private readonly PDF_DIR = path.join(process.cwd(), 'pdfs');
 
+  private getReadableErrorMessage(error: string): string {
+    if (error.includes('Invalid credentials')) {
+      return 'Invalid email or password. For Gmail accounts, you must use an App Password - go to Google Account Settings > Security > 2-Step Verification > App Passwords to generate one.';
+    }
+    if (error.includes('ETIMEDOUT')) {
+      return 'Connection timed out. Please check your host and port settings.';
+    }
+    if (error.includes('ECONNREFUSED')) {
+      return 'Connection refused. Please verify your host and port settings.';
+    }
+    if (error.includes('[AUTH]')) {
+      return 'Authentication failed. For Gmail, please use an App Password. For other providers, check your credentials.';
+    }
+    return `Connection failed: ${error}`;
+  }
+
+  async testConnection(config: EmailConfig): Promise<{ success: boolean; message: string }> {
+    try {
+      if (!config.email?.includes('@')) {
+        return { success: false, message: 'Invalid email address format' };
+      }
+
+      const imap = new Imap({
+        user: config.email,
+        password: config.password,
+        host: config.host,
+        port: config.port,
+        tls: true,
+        tlsOptions: { rejectUnauthorized: false }
+      });
+
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          imap.end();
+          resolve({ 
+            success: false, 
+            message: 'Connection timed out. Please check your settings and try again.' 
+          });
+        }, 15000);
+
+        imap.once('ready', () => {
+          clearTimeout(timeout);
+          imap.end();
+          resolve({ 
+            success: true, 
+            message: 'Connection successful! Your email configuration is working.' 
+          });
+        });
+
+        imap.once('error', (err: Error) => {
+          clearTimeout(timeout);
+          const errorMessage = this.getReadableErrorMessage(err.message);
+          log(`Test connection failed for ${config.email}: ${errorMessage}`, 'email-service');
+          imap.end();
+          resolve({ success: false, message: errorMessage });
+        });
+
+        try {
+          imap.connect();
+        } catch (err) {
+          clearTimeout(timeout);
+          const error = err as Error;
+          resolve({ 
+            success: false, 
+            message: this.getReadableErrorMessage(error.message) 
+          });
+        }
+      });
+    } catch (err) {
+      const error = err as Error;
+      return { 
+        success: false, 
+        message: this.getReadableErrorMessage(error.message) 
+      };
+    }
+  }
+
   async startMonitoring() {
     try {
-      // Ensure PDF directory exists
       await fs.mkdir(this.PDF_DIR, { recursive: true });
 
-      // Check emails every 5 minutes
       this.checkInterval = setInterval(async () => {
         try {
           const configs = await storage.getEmailConfigs();
@@ -47,57 +122,30 @@ export class EmailService {
   }
 
   private validateConfig(config: EmailConfig): void {
-    if (!config.host) {
-      throw new Error('Host is required');
-    }
-    if (!config.port) {
-      throw new Error('Port is required');
-    }
-    if (!config.email) {
-      throw new Error('Email is required');
+    const errors: string[] = [];
+
+    if (!config.email?.includes('@')) {
+      errors.push('Invalid email address format');
     }
     if (!config.password) {
-      throw new Error('Password is required');
+      errors.push('Password is required');
+    }
+    if (!config.host) {
+      errors.push('Host is required');
+    }
+    if (!config.port || config.port < 1) {
+      errors.push('Valid port number is required');
+    }
+    if (config.type !== 'IMAP') {
+      errors.push('Only IMAP is supported at this time');
+    }
+
+    if (errors.length > 0) {
+      throw new Error(errors.join(', '));
     }
   }
 
-  // New method to test connection
-  async testConnection(config: EmailConfig): Promise<{ success: boolean; message: string }> {
-    try {
-      this.validateConfig(config);
-
-      const imap = new Imap({
-        user: config.email,
-        password: config.password,
-        host: config.host,
-        port: config.port,
-        tls: true,
-        tlsOptions: { rejectUnauthorized: false }
-      });
-
-      return new Promise((resolve, reject) => {
-        imap.once('ready', () => {
-          log(`Test connection successful for ${config.email}`, 'email-service');
-          imap.end();
-          resolve({ success: true, message: 'Connection successful' });
-        });
-
-        imap.once('error', (err: Error) => {
-          const errorMessage = err.message || 'Unknown error';
-          log(`Test connection failed for ${config.email}: ${errorMessage}`, 'email-service');
-          imap.end();
-          resolve({ success: false, message: `Connection failed: ${errorMessage}` });
-        });
-
-        imap.connect();
-      });
-    } catch (err) {
-      const error = err as Error;
-      return { success: false, message: error.message };
-    }
-  }
-
-  private async checkEmails(config: EmailConfig) {
+  private async checkEmails(config: EmailConfig): Promise<boolean> {
     this.validateConfig(config);
 
     const imap = new Imap({
@@ -120,23 +168,31 @@ export class EmailService {
         }
       };
 
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Connection timed out. Please check your email settings.'));
+      }, 30000);
+
       imap.once('error', (err) => {
+        clearTimeout(timeout);
         log(`IMAP connection error for ${config.email}: ${err}`, 'email-service');
         cleanup();
-        reject(new Error(`Connection failed: ${err.message}`));
+        reject(new Error(this.getReadableErrorMessage(err.message)));
       });
 
       imap.once('end', () => {
+        clearTimeout(timeout);
         log(`IMAP connection ended for ${config.email}`, 'email-service');
       });
 
       imap.once('ready', () => {
+        clearTimeout(timeout);
         log(`IMAP connected successfully for ${config.email}`, 'email-service');
 
         imap.openBox('INBOX', false, async (err, box) => {
           if (err) {
             cleanup();
-            reject(new Error(`Failed to open inbox: ${err.message}`));
+            reject(new Error(`Failed to open inbox: ${this.getReadableErrorMessage(err.message)}`));
             return;
           }
 
@@ -144,7 +200,7 @@ export class EmailService {
             imap.search(['UNSEEN'], async (err, results) => {
               if (err) {
                 cleanup();
-                reject(new Error(`Failed to search messages: ${err.message}`));
+                reject(new Error(`Failed to search messages: ${this.getReadableErrorMessage(err.message)}`));
                 return;
               }
 
@@ -214,7 +270,7 @@ export class EmailService {
             });
           } catch (err) {
             cleanup();
-            reject(new Error(`Failed to process messages: ${err.message}`));
+            reject(new Error(`Failed to process messages: ${this.getReadableErrorMessage(err.message)}`));
           }
         });
       });
@@ -222,8 +278,9 @@ export class EmailService {
       try {
         imap.connect();
       } catch (err) {
+        clearTimeout(timeout);
         cleanup();
-        reject(new Error(`Failed to initiate connection: ${err.message}`));
+        reject(new Error(`Failed to initiate connection: ${this.getReadableErrorMessage(err.message)}`));
       }
     });
   }

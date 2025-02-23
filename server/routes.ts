@@ -101,14 +101,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/check-inbox", async (_req, res) => {
     try {
       const configs = await storage.getEmailConfigs();
+      let processedCount = 0;
+      const errors = [];
+
       for (const config of configs) {
         if (config.active) {
-          await emailService.checkEmails(config).catch(err => {
+          try {
+            await emailService.checkEmails(config);
+            processedCount++;
+          } catch (err) {
+            errors.push(`${config.email}: ${err.message}`);
             log(`Error checking emails for ${config.email}: ${err.message}`, 'email-service');
-          });
+          }
         }
       }
-      res.json({ message: "Inbox check initiated" });
+
+      if (errors.length > 0) {
+        res.status(207).json({
+          message: `Processed ${processedCount} accounts with ${errors.length} errors`,
+          errors
+        });
+      } else {
+        res.json({
+          message: "Successfully checked all active email accounts",
+          processed: processedCount
+        });
+      }
     } catch (err) {
       const error = err as Error;
       res.status(500).json({ error: error.message });

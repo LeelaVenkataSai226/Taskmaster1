@@ -1,15 +1,16 @@
 import { Link } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import EmailList from "@/components/email-list";
 import PdfList from "@/components/pdf-list";
 import { Plus, RefreshCw } from "lucide-react";
 import type { EmailConfig, PdfMetadata } from "@shared/schema";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: emailConfigs, isLoading: configsLoading } = useQuery<EmailConfig[]>({
     queryKey: ["/api/email-configs"],
   });

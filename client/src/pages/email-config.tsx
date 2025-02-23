@@ -13,13 +13,32 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { HelpCircle } from "lucide-react";
+import React from "react";
 
-// Extend the schema with more validation
+// Gmail-specific help content
+const GMAIL_APP_PASSWORD_HELP = `
+For Gmail accounts, you need to use an App Password:
+1. Go to your Google Account Settings
+2. Enable 2-Step Verification if not already enabled
+3. Go to Security > App Passwords
+4. Generate a new App Password for 'Mail'
+5. Use that 16-character password here
+`;
+
+// Update the formSchema
 const formSchema = insertEmailConfigSchema.extend({
-  email: z.string().email("Please enter a valid email address"),
-  host: z.string().min(1, "Host is required"),
-  port: z.number().min(1, "Port is required"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string()
+    .email("Please enter a valid email address")
+    .min(1, "Email is required"),
+  password: z.string()
+    .min(1, "Password is required")
+    .min(8, "Password must be at least 8 characters"),
+  host: z.string()
+    .min(1, "Host is required"),
+  port: z.number()
+    .min(1, "Port must be greater than 0")
+    .max(65535, "Port must be less than 65536"),
+  type: z.literal("IMAP"),
 });
 
 // Common email provider presets
@@ -45,7 +64,7 @@ export default function EmailConfig() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient(); // Use the hook instead of direct import
 
   const { data: config } = useQuery({
     queryKey: ["/api/email-configs", id],
@@ -76,7 +95,7 @@ export default function EmailConfig() {
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Connection test successful!"
+        description: "Connection test successful! You can now save the configuration."
       });
     },
     onError: (error) => {
@@ -100,8 +119,8 @@ export default function EmailConfig() {
         title: "Success",
         description: `Email configuration ${id ? "updated" : "created"} successfully`
       });
-      setLocation("/");
       queryClient.invalidateQueries({ queryKey: ["/api/email-configs"] });
+      setLocation("/");
     },
     onError: (error) => {
       toast({
@@ -122,8 +141,12 @@ export default function EmailConfig() {
     if (form.formState.isValid) {
       testConnectionMutation.mutate({ ...values, port: parseInt(values.port) });
     } else {
-      // Trigger validation to show errors
       form.trigger();
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields correctly before testing the connection.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -155,19 +178,35 @@ export default function EmailConfig() {
             <h1 className="text-2xl font-bold">
               {id ? "Edit Email Configuration" : "New Email Configuration"}
             </h1>
+            {form.getValues("email")?.includes("gmail.com") && (
+              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                <h2 className="text-sm font-semibold text-yellow-800">Important: Gmail App Password Required</h2>
+                <p className="mt-1 text-sm text-yellow-700">
+                  For Gmail accounts, you must use an App Password, not your regular password.
+                  <a 
+                    href="https://myaccount.google.com/apppasswords" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="ml-1 underline"
+                  >
+                    Generate an App Password
+                  </a>
+                </p>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <label>Email</label>
+                    <label className="font-medium">Email Address</label>
                     <Tooltip>
                       <TooltipTrigger>
                         <HelpCircle className="h-4 w-4 text-muted-foreground" />
                       </TooltipTrigger>
                       <TooltipContent>
-                        Enter your email address. Settings will be auto-filled for common providers.
+                        Enter your email address. Settings will be auto-filled for Gmail, Outlook, and Yahoo.
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -177,6 +216,7 @@ export default function EmailConfig() {
                       form.register("email").onChange(e);
                       handleEmailChange(e);
                     }}
+                    placeholder="your.email@example.com"
                   />
                   {form.formState.errors.email && (
                     <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
@@ -185,17 +225,22 @@ export default function EmailConfig() {
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <label>Password</label>
+                    <label className="font-medium">Password</label>
                     <Tooltip>
                       <TooltipTrigger>
                         <HelpCircle className="h-4 w-4 text-muted-foreground" />
                       </TooltipTrigger>
-                      <TooltipContent>
-                        For Gmail, use an App Password. Enable 2FA and generate one at Google Account settings.
+                      <TooltipContent className="max-w-xs">
+                        <p className="font-semibold mb-1">For Gmail accounts:</p>
+                        <p>{GMAIL_APP_PASSWORD_HELP}</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  <Input type="password" {...form.register("password")} />
+                  <Input 
+                    type="password" 
+                    {...form.register("password")} 
+                    placeholder={form.getValues("email")?.includes("gmail.com") ? "16-character App Password" : "Email password"}
+                  />
                   {form.formState.errors.password && (
                     <p className="text-sm text-red-500">{form.formState.errors.password.message}</p>
                   )}
@@ -203,7 +248,7 @@ export default function EmailConfig() {
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <label>Host</label>
+                    <label className="font-medium">Host</label>
                     <Tooltip>
                       <TooltipTrigger>
                         <HelpCircle className="h-4 w-4 text-muted-foreground" />
@@ -221,7 +266,7 @@ export default function EmailConfig() {
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <label>Port</label>
+                    <label className="font-medium">Port</label>
                     <Tooltip>
                       <TooltipTrigger>
                         <HelpCircle className="h-4 w-4 text-muted-foreground" />
@@ -239,19 +284,19 @@ export default function EmailConfig() {
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <label>Type</label>
+                    <label className="font-medium">Type</label>
                     <Tooltip>
                       <TooltipTrigger>
                         <HelpCircle className="h-4 w-4 text-muted-foreground" />
                       </TooltipTrigger>
                       <TooltipContent>
-                        Currently supporting IMAP protocol.
+                        Currently supporting IMAP protocol only.
                       </TooltipContent>
                     </Tooltip>
                   </div>
                   <Select 
                     onValueChange={(value) => form.setValue("type", value)}
-                    defaultValue={form.getValues("type")}
+                    defaultValue="IMAP"
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
@@ -262,19 +307,31 @@ export default function EmailConfig() {
                   </Select>
                 </div>
 
-                <div className="pt-4 flex gap-4">
+                <div className="pt-6 flex gap-4">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={handleTestConnection}
                     disabled={testConnectionMutation.isPending}
                   >
-                    {testConnectionMutation.isPending ? "Testing..." : "Test Connection"}
+                    {testConnectionMutation.isPending ? (
+                      <>
+                        <span className="animate-spin mr-2">⟳</span>
+                        Testing...
+                      </>
+                    ) : "Test Connection"}
                   </Button>
-                  <Button type="submit" disabled={mutation.isPending}>
+                  <Button 
+                    type="submit" 
+                    disabled={mutation.isPending || !form.formState.isValid}
+                  >
                     {mutation.isPending ? "Saving..." : (id ? "Update" : "Create")}
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setLocation("/")}>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setLocation("/")}
+                  >
                     Cancel
                   </Button>
                 </div>

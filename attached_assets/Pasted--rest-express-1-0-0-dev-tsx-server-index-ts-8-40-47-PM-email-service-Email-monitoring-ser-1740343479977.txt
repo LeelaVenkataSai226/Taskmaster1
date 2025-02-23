@@ -1,0 +1,39 @@
+
+> rest-express@1.0.0 dev
+> tsx server/index.ts
+
+8:40:47 PM [email-service] Email monitoring service started
+8:40:48 PM [express] serving on port 5000
+Fetched email configs: []
+8:40:52 PM [express] GET /api/email-configs 200 in 3ms :: []
+8:40:52 PM [express] GET /api/pdf-metadata 200 in 1ms :: []
+Fetched email configs: []
+8:40:55 PM [express] GET /api/email-configs 200 in 1ms :: []
+8:40:55 PM [express] GET /api/pdf-metadata 304 in 1ms :: []
+8:40:56 PM [express] GET /api/pdf-metadata 304 in 1ms :: []
+Fetched email configs: []
+8:40:56 PM [express] GET /api/email-configs 304 in 1ms :: []
+8:41:30 PM [email-service] Test connection failed for annamleela226@gmail.com: Invalid credentials (Failure)
+8:41:30 PM [express] POST /api/email-configs 400 in 306ms :: {"error":"Connection failed: Invalid cr…
+8:41:43 PM [email-service] Test connection failed for 218r1a6707@gmail.com: Invalid credentials (Failure)
+8:41:43 PM [express] POST /api/email-configs 400 in 424ms :: {"error":"Connection failed: Invalid cr…
+8:41:45 PM [email-service] Test connection failed for 218r1a6707@gmail.com: Invalid credentials (Failure)
+8:41:45 PM [express] POST /api/test-connection 200 in 134ms :: {"success":false,"message":"Connectio…
+Fetched email configs: []
+8:41:49 PM [express] GET /api/email-configs 200 in 0ms :: []
+8:41:49 PM [express] GET /api/pdf-metadata 304 in 1ms :: []
+Fetched email configs: []
+8:42:02 PM [express] GET /api/email-configs 304 in 1ms :: []
+8:42:02 PM [express] GET /api/pdf-metadata 304 in 1ms :: []
+8:42:13 PM [email-service] Test connection failed for annamleela226@gmail.com: Invalid credentials (Failure)
+8:42:13 PM [express] POST /api/email-configs 400 in 297ms :: {"error":"Connection failed: Invalid cr…
+8:42:28 PM [express] POST /api/check-inbox 200 in 1ms :: {"message":"Inbox check initiated"}
+8:42:29 PM [express] GET /api/pdf-metadata 304 in 1ms :: []
+8:43:05 PM [email-service] Test connection failed for annamleela07@gmail.com: Invalid credentials (Failure)
+8:43:05 PM [express] POST /api/email-configs 400 in 466ms :: {"error":"Connection failed: Invalid cr…
+8:43:16 PM [email-service] Test connection failed for annamleela07@gmail.com: Invalid credentials (Failure)
+8:43:16 PM [express] POST /api/test-connection 200 in 471ms :: {"success":false,"message":"Connectio…
+8:43:34 PM [email-service] Test connection failed for annamleela07@gmail.com: Invalid credentials (Failure)
+8:43:34 PM [express] POST /api/email-configs 400 in 440ms :: {"error":"Connection failed: Invalid cr…
+8:44:09 PM [email-service] Test connection failed for 218r1a6707@gmail.com: Invalid credentials (Failure)
+8:44:09 PM [express] POST /api/email-configs 400 in 460ms :: {"error":"Connection failed: Invalid cr…
