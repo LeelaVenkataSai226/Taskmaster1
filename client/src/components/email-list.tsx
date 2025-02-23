@@ -42,7 +42,7 @@ export default function EmailList({ configs, isLoading }: EmailListProps) {
     );
   }
 
-  if (configs.length === 0) {
+  if (!configs || configs.length === 0) {
     return (
       <Card>
         <CardContent className="p-6 text-center text-muted-foreground">
@@ -66,7 +66,7 @@ export default function EmailList({ configs, isLoading }: EmailListProps) {
               </div>
               <div className="flex items-center gap-2">
                 <Switch
-                  checked={config.active || false}
+                  checked={config.active}
                   onCheckedChange={(checked) =>
                     toggleMutation.mutate({ id: config.id, active: checked })
                   }

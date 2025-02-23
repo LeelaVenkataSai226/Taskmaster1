@@ -11,8 +11,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Email config routes
   app.get("/api/email-configs", async (_req, res) => {
-    const configs = await storage.getEmailConfigs();
-    res.json(configs);
+    try {
+      const configs = await storage.getEmailConfigs();
+      console.log("Fetched email configs:", configs); // Add logging
+      res.json(configs);
+    } catch (err) {
+      console.error("Error fetching email configs:", err);
+      res.status(500).json({ error: "Failed to fetch email configurations" });
+    }
   });
 
   app.post("/api/email-configs", async (req, res) => {
