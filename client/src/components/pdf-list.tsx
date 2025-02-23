@@ -20,11 +20,11 @@ export default function PdfList({ metadata, isLoading }: PdfListProps) {
     );
   }
 
-  if (metadata.length === 0) {
+  if (!metadata || metadata.length === 0) {
     return (
       <Card>
         <CardContent className="p-6 text-center text-muted-foreground">
-          No PDFs downloaded yet
+          No PDFs downloaded yet. Click "Check Inbox" to scan for new PDFs.
         </CardContent>
       </Card>
     );
@@ -33,7 +33,7 @@ export default function PdfList({ metadata, isLoading }: PdfListProps) {
   return (
     <div className="space-y-4">
       {metadata.map((pdf) => (
-        <Card key={pdf.id}>
+        <Card key={pdf.id} className="shadow-sm hover:shadow transition-shadow">
           <CardContent className="p-6">
             <div className="flex gap-4">
               <div className="shrink-0">

@@ -46,14 +46,32 @@ export class EmailService {
     }
   }
 
+  private validateConfig(config: EmailConfig): void {
+    if (!config.host) {
+      throw new Error('Host is required');
+    }
+    if (!config.port) {
+      throw new Error('Port is required');
+    }
+    if (!config.email) {
+      throw new Error('Email is required');
+    }
+    if (!config.password) {
+      throw new Error('Password is required');
+    }
+  }
+
   private async checkEmails(config: EmailConfig) {
+    // Validate config before attempting connection
+    this.validateConfig(config);
+
     const imap = new Imap({
       user: config.email,
       password: config.password,
       host: config.host,
       port: config.port,
       tls: true,
-      tlsOptions: { rejectUnauthorized: false } // For self-signed certificates
+      tlsOptions: { rejectUnauthorized: false }
     });
 
     return new Promise((resolve, reject) => {
@@ -68,6 +86,7 @@ export class EmailService {
       };
 
       imap.once('error', (err) => {
+        log(`IMAP connection error for ${config.email}: ${err}`, 'email-service');
         cleanup();
         reject(err);
       });
@@ -77,6 +96,8 @@ export class EmailService {
       });
 
       imap.once('ready', () => {
+        log(`IMAP connected successfully for ${config.email}`, 'email-service');
+
         imap.openBox('INBOX', false, async (err, box) => {
           if (err) {
             cleanup();
@@ -85,7 +106,7 @@ export class EmailService {
           }
 
           try {
-            // Search for unread messages with attachments
+            // Search for unread messages
             imap.search(['UNSEEN'], async (err, results) => {
               if (err) {
                 cleanup();
@@ -94,10 +115,13 @@ export class EmailService {
               }
 
               if (!results || results.length === 0) {
+                log(`No new messages found for ${config.email}`, 'email-service');
                 cleanup();
                 resolve(true);
                 return;
               }
+
+              log(`Found ${results.length} new messages for ${config.email}`, 'email-service');
 
               const fetch = imap.fetch(results, {
                 bodies: '',
@@ -133,6 +157,7 @@ export class EmailService {
                             filePath,
                             configId: config.id
                           });
+                          log(`Saved metadata for PDF: ${filename}`, 'email-service');
                         }
                       }
                     }
