@@ -1,0 +1,32 @@
+
+> rest-express@1.0.0 dev
+8:50:14 PM [email-service] Email monitoring service started
+8:50:14 PM [express] serving on port 5000
+Fetched email configs: []
+8:50:16 PM [express] GET /api/email-configs 200 in 3ms :: []
+8:50:16 PM [express] GET /api/pdf-metadata 200 in 1ms :: []
+8:50:21 PM [express] GET /api/pdf-metadata 304 in 1ms :: []
+Fetched email configs: []
+8:50:21 PM [express] GET /api/email-configs 304 in 0ms :: []
+Fetched email configs: []
+8:50:22 PM [express] GET /api/email-configs 304 in 1ms :: []
+8:50:22 PM [express] GET /api/pdf-metadata 304 in 0ms :: []
+8:52:18 PM [express] GET /api/pdf-metadata 304 in 0ms :: []
+Fetched email configs: []
+8:52:18 PM [express] GET /api/email-configs 304 in 0ms :: []
+8:52:37 PM [email-service] Test connection failed for 218r1a6707@gmail.com: Invalid email or password. For Gmail accounts, you must use an App Password - go to Google Account Settings > Security > 2-Step Verification > App Passwords to generate one.
+8:52:37 PM [express] POST /api/email-configs 400 in 736ms :: {"error":"Invalid email or password. Fo…
+8:54:32 PM [email-service] Test connection failed for 218r1a6707@gmail.com: Invalid email or password. For Gmail accounts, you must use an App Password - go to Google Account Settings > Security > 2-Step Verification > App Passwords to generate one.
+8:54:32 PM [express] POST /api/email-configs 400 in 610ms :: {"error":"Invalid email or password. Fo…
+8:58:21 PM [email-service] Test connection failed for 218r1a6707@gmail.com: Invalid email or password. For Gmail accounts, you must use an App Password - go to Google Account Settings > Security > 2-Step Verification > App Passwords to generate one.
+8:58:21 PM [express] POST /api/email-configs 400 in 170ms :: {"error":"Invalid email or password. Fo…
+8:58:42 PM [email-service] Test connection failed for 218r1a6707@gmail.com: Invalid email or password. For Gmail accounts, you must use an App Password - go to Google Account Settings > Security > 2-Step Verification > App Passwords to generate one.
+8:58:42 PM [express] POST /api/test-connection 200 in 413ms :: {"success":false,"message":"Invalid e…
+8:59:45 PM [email-service] Test connection failed for 218r1a6707@gmail.com: Invalid email or password. For Gmail accounts, you must use an App Password - go to Google Account Settings > Security > 2-Step Verification > App Passwords to generate one.
+8:59:45 PM [express] POST /api/email-configs 400 in 650ms :: {"error":"Invalid email or password. Fo…
+9:00:20 PM [email-service] Test connection failed for annamleela07@gmail.com: Invalid email or password. For Gmail accounts, you must use an App Password - go to Google Account Settings > Security > 2-Step Verification > App Passwords to generate one.
+9:00:20 PM [express] POST /api/email-configs 400 in 567ms :: {"error":"Invalid email or password. Fo…
+9:02:12 PM [express] POST /api/check-inbox 200 in 0ms :: {"message":"Successfully checked all active…
+9:02:13 PM [express] GET /api/pdf-metadata 304 in 1ms :: []
+9:02:23 PM [email-service] Test connection failed for 218r1a6707@gmail.com: Invalid email or password. For Gmail accounts, you must use an App Password - go to Google Account Settings > Security > 2-Step Verification > App Passwords to generate one.
+9:02:23 PM [express] POST /api/email-configs 400 in 559ms :: {"error":"Invalid email or password. Fo…

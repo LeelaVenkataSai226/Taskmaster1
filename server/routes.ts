@@ -135,8 +135,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // PDF metadata routes
   app.get("/api/pdf-metadata", async (_req, res) => {
-    const metadata = await storage.getPdfMetadata();
-    res.json(metadata);
+    try {
+      const metadata = await storage.getPdfMetadata();
+      res.json(metadata);
+    } catch (err) {
+      const error = err as Error;
+      res.status(500).json({ error: error.message });
+    }
   });
 
   const httpServer = createServer(app);
