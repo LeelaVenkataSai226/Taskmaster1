@@ -1,0 +1,55 @@
+Assignment: Email & PDF Ingestion with Simple UI
+Goal
+Build a minimal application that:
+
+Lets you configure one or more email accounts (including Outlook or any standard IMAP/POP3/Gmail API).
+Once an account is configured, the app automatically checks for incoming emails with PDF attachments and downloads them locally (e.g., into./pdfs/).
+Requirements
+
+1. UI for Email Configuration
+
+Create a Next.js page /page.tsx (or a similar path)
+This page should allow to add, edit, and remove email configurations.
+Fields: emailAddress, connectionType (IMAP, POP3, Gmail API, Outlook/Graph API, etc.), plus any username, password/token, or host fields needed.
+2. Connection & Retrieval
+
+After saving a configuration, the system should connect to that inbox (including Outlook if chosen).
+Any new email containing PDF attachments is downloaded automatically to a local folder (e.g., ./pdfs/).
+Store minimal metadata:
+fromAddress
+dateReceived
+subject
+attachmentFileName
+3. Storage
+
+Use a Prisma model (e.g., EmailIngestionConfig) to store each email config record.
+Store the PDF metadata in separate small model within your Prisma schema.
+No cloud storage is required; just save the PDFs locally.
+4.Tech Stack
+
+Language: Node.js (TypeScript) within a Next.js app.
+Database: Use Prisma (with PostgreSQL) for storing configurations and attachments info.
+API Routes: Implement Next.js route handlers in /src/app/api/email-ingestion/ or similar
+5. Running the App
+
+Provide instructions on how to:
+Install dependencies.
+Run migrations (npx prisma migrate dev).
+Start the development server (npm run dev or similar).
+Access the UI.
+6. Documentation
+
+Include a short README:
+Describe project structure (where the Next.js page is, the local pdfs/ folder, etc.).
+Explain environment variables (like credentials for Outlook, IMAP, etc.).
+Outline test steps to confirm PDFs are downloaded.
+Constraints & Notes
+
+Security: You can store credentials in .env or in your Prisma DB. No encryption is required for this test.
+Error Handling: At minimum, log or show errors for invalid email credentials. Handle attachment issues gracefully.
+Testing:
+Send test emails with a PDF from an Outlook mailbox (or any email client).
+Confirm the PDF appears in ./pdfs/ and the metadata is in the DB.
+UI Simplicity:
+Show a list of configured emails and a form to create/edit them.
+A button or automated process to “Check Inbox” and fetch new PDFs is sufficient.
