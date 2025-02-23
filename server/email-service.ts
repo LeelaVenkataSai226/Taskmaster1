@@ -71,7 +71,7 @@ export class EmailService {
       host: config.host,
       port: config.port,
       tls: true,
-      tlsOptions: { rejectUnauthorized: false }
+      tlsOptions: { rejectUnauthorized: false } // For self-signed certificates
     });
 
     return new Promise((resolve, reject) => {
@@ -141,23 +141,29 @@ export class EmailService {
                           (attachment.filename && attachment.filename.toLowerCase().endsWith('.pdf'));
 
                         if (isPdf) {
-                          const filename = attachment.filename || `${Date.now()}.pdf`;
+                          // Generate a unique filename if none exists
+                          const filename = attachment.filename || 
+                            `${Date.now()}-${Math.random().toString(36).substring(7)}.pdf`;
                           const filePath = path.join(this.PDF_DIR, filename);
 
-                          // Save PDF file
-                          await fs.writeFile(filePath, attachment.content);
-                          log(`Saved PDF: ${filename}`, 'email-service');
+                          try {
+                            // Save PDF file
+                            await fs.writeFile(filePath, attachment.content);
+                            log(`Saved PDF: ${filename}`, 'email-service');
 
-                          // Save metadata
-                          await storage.createPdfMetadata({
-                            filename,
-                            fromAddress: parsed.from?.text || 'Unknown',
-                            subject: parsed.subject || 'No Subject',
-                            dateReceived: parsed.date || new Date(),
-                            filePath,
-                            configId: config.id
-                          });
-                          log(`Saved metadata for PDF: ${filename}`, 'email-service');
+                            // Save metadata
+                            await storage.createPdfMetadata({
+                              filename,
+                              fromAddress: parsed.from?.text || 'Unknown',
+                              subject: parsed.subject || 'No Subject',
+                              dateReceived: parsed.date || new Date(),
+                              filePath,
+                              configId: config.id
+                            });
+                            log(`Saved metadata for PDF: ${filename}`, 'email-service');
+                          } catch (err) {
+                            log(`Error saving PDF ${filename}: ${err}`, 'email-service');
+                          }
                         }
                       }
                     }
