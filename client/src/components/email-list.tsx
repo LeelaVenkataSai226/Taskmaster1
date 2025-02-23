@@ -46,7 +46,7 @@ export default function EmailList({ configs, isLoading }: EmailListProps) {
     return (
       <Card>
         <CardContent className="p-6 text-center text-muted-foreground">
-          No email configurations yet
+          No email configurations yet. Click "Add Email Config" to get started.
         </CardContent>
       </Card>
     );
@@ -55,18 +55,18 @@ export default function EmailList({ configs, isLoading }: EmailListProps) {
   return (
     <div className="space-y-4">
       {configs.map((config) => (
-        <Card key={config.id}>
+        <Card key={config.id} className="shadow-sm hover:shadow transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold">{config.email}</h3>
+              <div className="min-w-0">
+                <h3 className="font-semibold truncate">{config.email}</h3>
                 <p className="text-sm text-muted-foreground">
                   {config.type} • {config.host}:{config.port}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Switch
-                  checked={config.active}
+                  checked={config.active || false}
                   onCheckedChange={(checked) =>
                     toggleMutation.mutate({ id: config.id, active: checked })
                   }

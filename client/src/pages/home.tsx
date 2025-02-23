@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import EmailList from "@/components/email-list";
 import PdfList from "@/components/pdf-list";
 import { Plus } from "lucide-react";
+import type { EmailConfig, PdfMetadata } from "@shared/schema";
 
 export default function Home() {
-  const { data: emailConfigs, isLoading: configsLoading } = useQuery({
+  const { data: emailConfigs, isLoading: configsLoading } = useQuery<EmailConfig[]>({
     queryKey: ["/api/email-configs"],
   });
 
-  const { data: pdfMetadata, isLoading: pdfLoading } = useQuery({
+  const { data: pdfMetadata, isLoading: pdfLoading } = useQuery<PdfMetadata[]>({
     queryKey: ["/api/pdf-metadata"],
   });
 
