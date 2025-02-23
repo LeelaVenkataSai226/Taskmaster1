@@ -61,8 +61,43 @@ export class EmailService {
     }
   }
 
+  // New method to test connection
+  async testConnection(config: EmailConfig): Promise<{ success: boolean; message: string }> {
+    try {
+      this.validateConfig(config);
+
+      const imap = new Imap({
+        user: config.email,
+        password: config.password,
+        host: config.host,
+        port: config.port,
+        tls: true,
+        tlsOptions: { rejectUnauthorized: false }
+      });
+
+      return new Promise((resolve, reject) => {
+        imap.once('ready', () => {
+          log(`Test connection successful for ${config.email}`, 'email-service');
+          imap.end();
+          resolve({ success: true, message: 'Connection successful' });
+        });
+
+        imap.once('error', (err: Error) => {
+          const errorMessage = err.message || 'Unknown error';
+          log(`Test connection failed for ${config.email}: ${errorMessage}`, 'email-service');
+          imap.end();
+          resolve({ success: false, message: `Connection failed: ${errorMessage}` });
+        });
+
+        imap.connect();
+      });
+    } catch (err) {
+      const error = err as Error;
+      return { success: false, message: error.message };
+    }
+  }
+
   private async checkEmails(config: EmailConfig) {
-    // Validate config before attempting connection
     this.validateConfig(config);
 
     const imap = new Imap({
@@ -71,7 +106,7 @@ export class EmailService {
       host: config.host,
       port: config.port,
       tls: true,
-      tlsOptions: { rejectUnauthorized: false } // For self-signed certificates
+      tlsOptions: { rejectUnauthorized: false }
     });
 
     return new Promise((resolve, reject) => {
@@ -88,7 +123,7 @@ export class EmailService {
       imap.once('error', (err) => {
         log(`IMAP connection error for ${config.email}: ${err}`, 'email-service');
         cleanup();
-        reject(err);
+        reject(new Error(`Connection failed: ${err.message}`));
       });
 
       imap.once('end', () => {
@@ -101,16 +136,15 @@ export class EmailService {
         imap.openBox('INBOX', false, async (err, box) => {
           if (err) {
             cleanup();
-            reject(err);
+            reject(new Error(`Failed to open inbox: ${err.message}`));
             return;
           }
 
           try {
-            // Search for unread messages
             imap.search(['UNSEEN'], async (err, results) => {
               if (err) {
                 cleanup();
-                reject(err);
+                reject(new Error(`Failed to search messages: ${err.message}`));
                 return;
               }
 
@@ -135,23 +169,19 @@ export class EmailService {
 
                     if (parsed.attachments && parsed.attachments.length > 0) {
                       for (const attachment of parsed.attachments) {
-                        // Check if attachment is PDF by content type or filename
                         const isPdf = 
                           attachment.contentType === 'application/pdf' ||
                           (attachment.filename && attachment.filename.toLowerCase().endsWith('.pdf'));
 
                         if (isPdf) {
-                          // Generate a unique filename if none exists
                           const filename = attachment.filename || 
                             `${Date.now()}-${Math.random().toString(36).substring(7)}.pdf`;
                           const filePath = path.join(this.PDF_DIR, filename);
 
                           try {
-                            // Save PDF file
                             await fs.writeFile(filePath, attachment.content);
                             log(`Saved PDF: ${filename}`, 'email-service');
 
-                            // Save metadata
                             await storage.createPdfMetadata({
                               filename,
                               fromAddress: parsed.from?.text || 'Unknown',
@@ -184,7 +214,7 @@ export class EmailService {
             });
           } catch (err) {
             cleanup();
-            reject(err);
+            reject(new Error(`Failed to process messages: ${err.message}`));
           }
         });
       });
@@ -193,7 +223,7 @@ export class EmailService {
         imap.connect();
       } catch (err) {
         cleanup();
-        reject(err);
+        reject(new Error(`Failed to initiate connection: ${err.message}`));
       }
     });
   }

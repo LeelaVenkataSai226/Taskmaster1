@@ -13,7 +13,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/email-configs", async (_req, res) => {
     try {
       const configs = await storage.getEmailConfigs();
-      console.log("Fetched email configs:", configs); // Add logging
+      console.log("Fetched email configs:", configs);
       res.json(configs);
     } catch (err) {
       console.error("Error fetching email configs:", err);
@@ -22,33 +22,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/email-configs", async (req, res) => {
-    const parsed = insertEmailConfigSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error });
-    }
+    try {
+      const parsed = insertEmailConfigSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error });
+      }
 
-    const config = await storage.createEmailConfig(parsed.data);
-    res.json(config);
+      // Test connection before saving
+      const testResult = await emailService.testConnection(parsed.data);
+      if (!testResult.success) {
+        return res.status(400).json({ error: testResult.message });
+      }
+
+      const config = await storage.createEmailConfig(parsed.data);
+      res.json(config);
+    } catch (err) {
+      const error = err as Error;
+      res.status(500).json({ error: error.message });
+    }
   });
 
   app.patch("/api/email-configs/:id", async (req, res) => {
-    const id = parseInt(req.params.id);
-    const parsed = insertEmailConfigSchema.partial().safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error });
-    }
+    try {
+      const id = parseInt(req.params.id);
+      const parsed = insertEmailConfigSchema.partial().safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error });
+      }
 
-    const config = await storage.updateEmailConfig(id, parsed.data);
-    if (!config) {
-      return res.status(404).json({ error: "Config not found" });
+      const existingConfig = await storage.getEmailConfig(id);
+      if (!existingConfig) {
+        return res.status(404).json({ error: "Config not found" });
+      }
+
+      // If credentials are being updated, test the connection
+      if (parsed.data.email || parsed.data.password || parsed.data.host || parsed.data.port) {
+        const testConfig = { ...existingConfig, ...parsed.data };
+        const testResult = await emailService.testConnection(testConfig);
+        if (!testResult.success) {
+          return res.status(400).json({ error: testResult.message });
+        }
+      }
+
+      const config = await storage.updateEmailConfig(id, parsed.data);
+      if (!config) {
+        return res.status(404).json({ error: "Config not found" });
+      }
+      res.json(config);
+    } catch (err) {
+      const error = err as Error;
+      res.status(500).json({ error: error.message });
     }
-    res.json(config);
   });
 
   app.delete("/api/email-configs/:id", async (req, res) => {
     const id = parseInt(req.params.id);
     await storage.deleteEmailConfig(id);
     res.status(204).end();
+  });
+
+  // Test connection endpoint
+  app.post("/api/test-connection", async (req, res) => {
+    try {
+      const parsed = insertEmailConfigSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error });
+      }
+
+      const result = await emailService.testConnection(parsed.data);
+      res.json(result);
+    } catch (err) {
+      const error = err as Error;
+      res.status(500).json({ error: error.message });
+    }
   });
 
   // Manual check inbox route
@@ -64,7 +110,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json({ message: "Inbox check initiated" });
     } catch (err) {
-      res.status(500).json({ error: "Failed to check inbox" });
+      const error = err as Error;
+      res.status(500).json({ error: error.message });
     }
   });
 

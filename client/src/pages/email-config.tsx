@@ -1,5 +1,5 @@
 import { useParams, useLocation } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -45,6 +45,7 @@ export default function EmailConfig() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: config } = useQuery({
     queryKey: ["/api/email-configs", id],
@@ -63,6 +64,30 @@ export default function EmailConfig() {
     }
   });
 
+  const testConnectionMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest("POST", "/api/test-connection", data);
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+      return result;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Connection test successful!"
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Connection Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
   const mutation = useMutation({
     mutationFn: async (data: any) => {
       if (id) {
@@ -76,6 +101,7 @@ export default function EmailConfig() {
         description: `Email configuration ${id ? "updated" : "created"} successfully`
       });
       setLocation("/");
+      queryClient.invalidateQueries({ queryKey: ["/api/email-configs"] });
     },
     onError: (error) => {
       toast({
@@ -89,6 +115,16 @@ export default function EmailConfig() {
   const onSubmit = (data: any) => {
     data.port = parseInt(data.port);
     mutation.mutate(data);
+  };
+
+  const handleTestConnection = () => {
+    const values = form.getValues();
+    if (form.formState.isValid) {
+      testConnectionMutation.mutate({ ...values, port: parseInt(values.port) });
+    } else {
+      // Trigger validation to show errors
+      form.trigger();
+    }
   };
 
   // Auto-fill settings based on email domain
@@ -227,6 +263,14 @@ export default function EmailConfig() {
                 </div>
 
                 <div className="pt-4 flex gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleTestConnection}
+                    disabled={testConnectionMutation.isPending}
+                  >
+                    {testConnectionMutation.isPending ? "Testing..." : "Test Connection"}
+                  </Button>
                   <Button type="submit" disabled={mutation.isPending}>
                     {mutation.isPending ? "Saving..." : (id ? "Update" : "Create")}
                   </Button>
